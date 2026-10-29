@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#6d28d9">
+<title>Alicioso · Tarjeta de sellos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f2fb;--ink:#241437;--mute:#6b5b80;--line:#e3d9f0;--surf:#fff;--brand:#6d28d9;--err:#b42318;--ok:#157347}
+@media (prefers-color-scheme:dark){:root{--bg:#160d24;--ink:#f3ecfb;--mute:#b3a3c9;--line:#35254d;--surf:#221436;--brand:#a78bfa;--err:#ff8a80;--ok:#7ee0a8}}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;font-size:16px;line-height:1.5;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+h1,h2,h3{font-family:'Baloo 2',system-ui,sans-serif;line-height:1.15;margin:0}
+main{max-width:480px;margin:0 auto;padding:16px 16px 48px}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.logo{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:26px;color:var(--brand)}
+button,.btn{font:inherit;font-weight:700;border:0;border-radius:14px;padding:13px 18px;background:var(--brand);color:#fff;cursor:pointer;min-height:48px}
+button.sec{background:transparent;color:var(--brand);border:2px solid var(--brand)}
+button.link{background:none;color:var(--mute);min-height:0;padding:6px;font-weight:600}
+button:disabled{opacity:.5}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+.full{width:100%;display:block;margin-top:12px}
+.panel{background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:16px}
+label{display:block;font-weight:700;margin:14px 0 6px}
+input,select{width:100%;font:inherit;padding:12px;border-radius:12px;border:2px solid var(--line);background:var(--bg);color:var(--ink);min-height:48px}
+input[type=color]{padding:4px;height:52px}
+.msg{margin-top:12px;font-weight:600;min-height:1.5em}
+.msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
+.hide{display:none!important}
+.mute{color:var(--mute)}
+.card{border-radius:22px;padding:20px;margin-top:16px;transition:background .3s}
+.card h2{font-size:28px}
+.card .sub{opacity:.85;font-weight:700}
+.slots{display:flex;flex-wrap:wrap;gap:12px;margin:18px 0 8px}
+.pop{width:54px;height:80px;border-radius:27px 27px 10px 10px;border:3px dashed currentColor;opacity:.6;position:relative;margin-bottom:16px;display:grid;place-items:center;font-weight:800;font-size:22px}
+.pop::after{content:"";position:absolute;left:50%;bottom:-16px;width:12px;height:16px;margin-left:-6px;border-radius:0 0 6px 6px;background:currentColor;opacity:.7}
+.pop.on{opacity:1;border-style:solid;background:var(--fill);color:var(--ink-on)}
+.pop.on::after{background:var(--fill)}
+.prize{font-weight:800;margin-top:6px}
+.badge{display:inline-block;background:#fff;color:#241437;border-radius:999px;padding:4px 12px;font-weight:800;margin-top:8px}
+.qrbox{background:#fff;border-radius:18px;padding:14px;display:grid;place-items:center;margin-top:12px}
+.qrbox svg,.qrbox img{width:min(260px,100%);height:auto}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--brand);width:100%;transition:width 1s linear}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row button{min-height:40px;padding:8px 14px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <div class="top"><span class="logo">Alicioso</span><button class="link hide" id="btnSalir">Salir</button></div>
+
+  <section id="vLogin" class="hide">
+    <h1>Tu tarjeta de sellos, siempre en el bolsillo</h1>
+    <p class="mute">Entra con tu cuenta de Google para ver o crear tu tarjeta.</p>
+    <button class="full" id="btnGoogle">Entrar con Google</button>
+    <div class="msg err" id="loginMsg"></div>
+  </section>
+
+  <section id="vRol" class="hide">
+    <h1>¿Cómo vas a usar la app?</h1>
+    <button class="full" data-rol="cliente">Soy cliente</button>
+    <button class="full sec" data-rol="vendedor">Tengo un negocio</button>
+  </section>
+
+  <section id="vCliente" class="hide">
+    <div id="aviso" class="msg"></div>
+    <div id="tarjetas"></div>
+    <div class="panel" id="vacioCliente">
+      <h3>Aún no tienes tarjetas</h3>
+      <p class="mute">Pide el código QR en tu negocio favorito y escanéalo con la cámara del teléfono. Tu tarjeta se crea sola.</p>
+    </div>
+  </section>
+
+  <section id="vVendedor" class="hide">
+    <div class="panel">
+      <h3>Código para dar un sello</h3>
+      <p class="mute">El cliente lo escanea con la cámara. Cambia cada 25 segundos y solo sirve una vez por minuto por cliente.</p>
+      <div class="qrbox" id="qr"></div>
+      <div class="bar"><i id="barra"></i></div>
+    </div>
+    <div class="panel">
+      <h3>Clientes <span class="mute" id="nClientes"></span></h3>
+      <div id="listaClientes"><p class="mute">Todavía no hay clientes. Muestra el código a tu primer cliente.</p></div>
+    </div>
+    <button class="full sec" id="btnConfig">Configurar mi negocio</button>
+  </section>
+
+  <section id="vConfig" class="hide">
+    <h1>Mi negocio</h1>
+    <div class="panel">
+      <label for="cNombre">Nombre del negocio</label><input id="cNombre" maxlength="40">
+      <label for="cTipo">Tipo de negocio</label>
+      <select id="cTipo"><option>Paletería</option><option>Heladería</option><option>Barbería</option><option>Cafetería</option><option>Restaurante</option><option>Tienda</option><option>Otro</option></select>
+      <label for="cCasillas">Número de casillas (1 a 20)</label><input id="cCasillas" type="number" min="1" max="20" inputmode="numeric">
+      <label for="cPremio">Premio al completar</label><input id="cPremio" maxlength="60">
+      <label for="cColor">Color de la tarjeta por defecto</label><input id="cColor" type="color">
+      <button class="full" id="btnGuardarConfig">Guardar cambios</button>
+      <button class="full sec" id="btnVolver">Volver</button>
+      <div class="msg" id="cfgMsg"></div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBYlml-HaJb09kRhmdGgqG3hcV-47w43JM",
+  authDomain: "alicioso-f2746.firebaseapp.com",
+  projectId: "alicioso-f2746",
+  storageBucket: "alicioso-f2746.firebasestorage.app",
+  messagingSenderId: "1018644529186",
+  appId: "1:1018644529186:web:15ed9b30d20dbc88f78a7b"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth(), db = firebase.firestore(), TS = firebase.firestore.Timestamp;
+const $ = id => document.getElementById(id);
+const VISTAS = ['vLogin','vRol','vCliente','vVendedor','vConfig'];
+const unsubs = []; let user = null, timerQR = null;
+const DEFECTO = {nombre:'Alicioso', tipo:'Paletería', totalCasillas:4, premio:'Una paleta gratis', color:'#6d28d9'};
+
+function ver(id){ VISTAS.forEach(v => $(v).classList.toggle('hide', v !== id)); $('btnSalir').classList.toggle('hide', id === 'vLogin'); }
+function limpiar(){ unsubs.splice(0).forEach(f => f()); clearInterval(timerQR); }
+function msg(el, texto, tipo){ el.textContent = texto || ''; el.className = 'msg ' + (tipo || ''); }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function textoSobre(hex){ const n = parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255; return (r*299+g*587+b*114)/1000 > 150 ? '#241437' : '#ffffff'; }
+function errorLegible(e){
+  if (e && e.code === 'permission-denied') return 'No se pudo sellar. El código venció o ya recibiste un sello hace menos de un minuto. Pide el código de nuevo e inténtalo otra vez.';
+  if (e && e.code === 'unavailable') return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
+  return 'Algo salió mal. Inténtalo de nuevo.';
+}
+
+$('btnGoogle').onclick = async () => {
+  try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
+  catch (e) { msg($('loginMsg'), e.code === 'auth/unauthorized-domain' ? 'Este sitio aún no está autorizado en Firebase (Authentication > Configuración > Dominios autorizados).' : 'No se pudo entrar. Inténtalo de nuevo.', 'err'); }
+};
+$('btnSalir').onclick = () => auth.signOut();
+auth.onAuthStateChanged(async u => {
+  limpiar(); user = u;
+  if (!u) return ver('vLogin');
+  try {
+    const s = await db.collection('users').doc(u.uid).get();
+    const params = new URLSearchParams(location.search);
+    if (!s.exists && params.get('n')) { await db.collection('users').doc(u.uid).set({rol:'cliente'}); return irCliente(); }
+    if (!s.exists) return ver('vRol');
+    s.data().rol === 'vendedor' ? irVendedor() : irCliente();
+  } catch (e) { ver('vLogin'); msg($('loginMsg'), errorLegible(e), 'err'); }
+});
+document.querySelectorAll('[data-rol]').forEach(b => b.onclick = async () => {
+  await db.collection('users').doc(user.uid).set({rol:b.dataset.rol});
+  b.dataset.rol === 'vendedor' ? irVendedor() : irCliente();
+});
+
+function pintarTarjeta(t, neg){
+  const total = neg.totalCasillas, fill = textoSobre(t.color);
+  let pops = '';
+  for (let i = 0; i < total; i++) pops += `<div class="pop ${i < t.sellos ? 'on' : ''}">${i < t.sellos ? '✓' : ''}</div>`;
+  const completa = t.sellos >= total;
+  return `<div class="card" style="background:${t.color};color:${fill};--fill:${fill};--ink-on:${t.color}">
+    <div class="sub">${esc(neg.nombre)} · ${esc(neg.tipo)}</div>
+    <h2>${esc(t.nombre)}</h2>
+    <div class="slots">${pops}</div>
+    <div class="prize">${completa ? '¡Completaste tu tarjeta! Muestra esta pantalla para recibir: ' : `${t.sellos} de ${total}. Premio: `}${esc(neg.premio)}</div>
+    ${completa ? '<span class="badge">Premio listo</span>' : ''}
+  </div>
+  <div class="panel">
+    <label for="n_${t.id}">Mi nombre</label><input id="n_${t.id}" maxlength="30" value="${esc(t.nombre)}">
+    <label for="c_${t.id}">Color de mi tarjeta</label><input id="c_${t.id}" type="color" value="${t.color}">
+  </div>`;
+}
+function irCliente(){
+  ver('vCliente'); limpiar();
+  const negocios = {};
+  const q = db.collection('tarjetas').where('clienteUid','==',user.uid);
+  unsubs.push(q.onSnapshot(async snap => {
+    const items = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    for (const t of items) if (!negocios[t.negocioId]) negocios[t.negocioId] = (await db.collection('negocios').doc(t.negocioId).get()).data();
+    $('vacioCliente').classList.toggle('hide', items.length > 0);
+    const caja = $('tarjetas');
+    if (!caja.contains(document.activeElement) || !items.length) caja.innerHTML = items.map(t => pintarTarjeta(t, negocios[t.negocioId])).join('');
+    else items.forEach(t => { const c = caja.querySelector('#c_' + CSS.escape(t.id)); if (c) c.value = t.color; });
+    items.forEach(t => {
+      const n = $('n_' + t.id), c = $('c_' + t.id); if (!n) return;
+      const guardar = async () => { const nombre = n.value.trim().slice(0,30); if (!nombre) return;
+        try { await db.collection('tarjetas').doc(t.id).update({nombre, color:c.value}); } catch (e) { msg($('aviso'), errorLegible(e), 'err'); } };
+      let espera; const dif = () => { clearTimeout(espera); espera = setTimeout(guardar, 500); };
+      n.oninput = dif; c.oninput = dif;
+    });
+  }, e => msg($('aviso'), errorLegible(e), 'err')));
+  procesarQR();
+}
+async function procesarQR(){
+  const p = new URLSearchParams(location.search), n = p.get('n'), t = p.get('t');
+  if (!n || !t) return;
+  history.replaceState(null, '', location.pathname);
+  msg($('aviso'), 'Sellando tu tarjeta…');
+  try {
+    const ref = db.collection('tarjetas').doc(n + '_' + user.uid);
+    let s = await ref.get();
+    if (!s.exists) {
+      const neg = await db.collection('negocios').doc(n).get();
+      if (!neg.exists) return msg($('aviso'), 'Este código no pertenece a un negocio válido.', 'err');
+      await ref.set({negocioId:n, clienteUid:user.uid, nombre:(user.displayName || 'Cliente').slice(0,30), color:neg.data().color, sellos:0, ultimoSello:new Date(946684800000), tokenUsado:''});
+      s = await ref.get();
+    }
+    const neg = (await db.collection('negocios').doc(n).get()).data();
+    if (s.data().sellos >= neg.totalCasillas) return msg($('aviso'), 'Tu tarjeta ya está completa. Pide tu premio.', 'ok');
+    await ref.update({sellos:s.data().sellos + 1, ultimoSello:firebase.firestore.FieldValue.serverTimestamp(), tokenUsado:t});
+    msg($('aviso'), '¡Sello agregado!', 'ok');
+  } catch (e) { msg($('aviso'), errorLegible(e), 'err'); }
+}
+
+async function irVendedor(){
+  limpiar();
+  const ref = db.collection('negocios').doc(user.uid);
+  let s = await ref.get();
+  if (!s.exists) { await ref.set(DEFECTO); s = await ref.get(); }
+  const neg = s.data(); ver('vVendedor');
+  rotarCodigo(); timerQR = setInterval(rotarCodigo, 25000); barra();
+  unsubs.push(db.collection('tarjetas').where('negocioId','==',user.uid).onSnapshot(snap => {
+    const total = neg.totalCasillas; $('nClientes').textContent = `(${snap.size})`;
+    if (snap.empty) return;
+    $('listaClientes').innerHTML = snap.docs.map(d => { const t = d.data(), listo = t.sellos >= total;
+      return `<div class="row"><div><b>${esc(t.nombre)}</b><br><span class="mute">${t.sellos} de ${total}${listo ? ' · premio listo' : ''}</span></div>${listo ? `<button data-premio="${d.id}">Entregar premio</button>` : ''}</div>`; }).join('');
+    document.querySelectorAll('[data-premio]').forEach(b => b.onclick = async () => {
+      if (confirm('¿Ya entregaste el premio? La tarjeta volverá a cero.')) await db.collection('tarjetas').doc(b.dataset.premio).update({sellos:0}); });
+  }));
+}
+function barra(){ const b = $('barra'); b.style.transition = 'none'; b.style.width = '100%'; void b.offsetWidth; b.style.transition = 'width 25s linear'; b.style.width = '0%'; }
+async function rotarCodigo(){
+  const bytes = crypto.getRandomValues(new Uint8Array(12)), token = Array.from(bytes, x => x.toString(16).padStart(2,'0')).join('');
+  try {
+    await db.collection('negocios').doc(user.uid).collection('secreto').doc('actual').set({token, expira:TS.fromMillis(Date.now() + 50000)});
+    const url = location.origin + location.pathname + '?n=' + user.uid + '&t=' + token;
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make(); $('qr').innerHTML = qr.createSvgTag({cellSize:6, margin:0, scalable:true}); barra();
+  } catch (e) { $('qr').textContent = 'No se pudo generar el código. Revisa tu conexión.'; }
+}
+$('btnConfig').onclick = async () => {
+  const d = (await db.collection('negocios').doc(user.uid).get()).data();
+  $('cNombre').value = d.nombre; $('cTipo').value = d.tipo; $('cCasillas').value = d.totalCasillas; $('cPremio').value = d.premio; $('cColor').value = d.color;
+  msg($('cfgMsg'), ''); ver('vConfig');
+};
+$('btnVolver').onclick = () => irVendedor();
+$('btnGuardarConfig').onclick = async () => {
+  const n = Math.round(Number($('cCasillas').value)), nombre = $('cNombre').value.trim(), premio = $('cPremio').value.trim();
+  if (!nombre || !premio || !(n >= 1 && n <= 20)) return msg($('cfgMsg'), 'Completa el nombre, el premio y un número de casillas entre 1 y 20.', 'err');
+  try { await db.collection('negocios').doc(user.uid).set({nombre, tipo:$('cTipo').value, totalCasillas:n, premio, color:$('cColor').value}); msg($('cfgMsg'), 'Cambios guardados', 'ok'); }
+  catch (e) { msg($('cfgMsg'), errorLegible(e), 'err'); }
+};
+</script>
+</body>
+</html>
