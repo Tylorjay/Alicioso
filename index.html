@@ -48,6 +48,11 @@ input[type=color]{padding:4px;height:52px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
 .row:first-child{border-top:0}
 .row button{min-height:40px;padding:8px 14px}
+.scan{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column}
+.scan video{flex:1;width:100%;object-fit:cover;min-height:0}
+.scan .frame{position:absolute;left:50%;top:42%;width:min(70vw,300px);aspect-ratio:1;transform:translate(-50%,-50%);border:4px solid #fff;border-radius:24px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+.scan .bottom{padding:16px;background:#160d24;color:#fff;text-align:center}
+.scan .bottom p{margin:0 0 10px;font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -69,6 +74,7 @@ input[type=color]{padding:4px;height:52px}
   </section>
 
   <section id="vCliente" class="hide">
+    <button class="full" id="btnEscanear">Escanear código QR</button>
     <div id="aviso" class="msg"></div>
     <div id="tarjetas"></div>
     <div class="panel" id="vacioCliente">
@@ -106,11 +112,17 @@ input[type=color]{padding:4px;height:52px}
     </div>
   </section>
 </main>
+<div class="scan hide" id="scan" role="dialog" aria-label="Escanear código QR">
+  <video id="video" playsinline muted></video>
+  <div class="frame"></div>
+  <div class="bottom"><p id="scanMsg">Apunta al código QR del negocio</p><button class="sec full" id="btnCerrarScan" style="color:#fff;border-color:#fff">Cancelar</button></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyBYlml-HaJb09kRhmdGgqG3hcV-47w43JM",
@@ -128,12 +140,12 @@ const unsubs = []; let user = null, timerQR = null;
 const DEFECTO = {nombre:'Alicioso', tipo:'Paletería', totalCasillas:4, premio:'Una paleta gratis', color:'#6d28d9'};
 
 function ver(id){ VISTAS.forEach(v => $(v).classList.toggle('hide', v !== id)); $('btnSalir').classList.toggle('hide', id === 'vLogin'); }
-function limpiar(){ unsubs.splice(0).forEach(f => f()); clearInterval(timerQR); }
+function limpiar(){ unsubs.splice(0).forEach(f => f()); clearInterval(timerQR); if (typeof cerrarEscaner === 'function') cerrarEscaner(); }
 function msg(el, texto, tipo){ el.textContent = texto || ''; el.className = 'msg ' + (tipo || ''); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function textoSobre(hex){ const n = parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255; return (r*299+g*587+b*114)/1000 > 150 ? '#241437' : '#ffffff'; }
 function errorLegible(e){
-  if (e && e.code === 'permission-denied') return 'No se pudo sellar. El código venció o ya recibiste un sello hace menos de un minuto. Pide el código de nuevo e inténtalo otra vez.';
+  if (e && e.code === 'permission-denied') return 'No se pudo sellar. El código venció o ya recibiste un sello hace menos de un minuto. Toca Escanear código QR para intentarlo de nuevo.';
   if (e && e.code === 'unavailable') return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
   return 'Algo salió mal. Inténtalo de nuevo.';
 }
@@ -197,10 +209,13 @@ function irCliente(){
   }, e => msg($('aviso'), errorLegible(e), 'err')));
   procesarQR();
 }
-async function procesarQR(){
+function procesarQR(){
   const p = new URLSearchParams(location.search), n = p.get('n'), t = p.get('t');
   if (!n || !t) return;
   history.replaceState(null, '', location.pathname);
+  return sellar(n, t);
+}
+async function sellar(n, t){
   msg($('aviso'), 'Sellando tu tarjeta…');
   try {
     const ref = db.collection('tarjetas').doc(n + '_' + user.uid);
@@ -217,6 +232,36 @@ async function procesarQR(){
     msg($('aviso'), '¡Sello agregado!', 'ok');
   } catch (e) { msg($('aviso'), errorLegible(e), 'err'); }
 }
+
+let stream = null, escaneando = false;
+async function abrirEscaner(){
+  const v = $('video');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
+  } catch (e) { return msg($('aviso'), 'No se pudo abrir la cámara. Permite el acceso a la cámara en tu navegador e inténtalo de nuevo.', 'err'); }
+  v.srcObject = stream; await v.play();
+  $('scan').classList.remove('hide'); msg($('scanMsg'), 'Apunta al código QR del negocio'); escaneando = true;
+  const lienzo = document.createElement('canvas'), ctx = lienzo.getContext('2d', {willReadFrequently:true});
+  const leer = () => {
+    if (!escaneando) return;
+    if (v.readyState === v.HAVE_ENOUGH_DATA && v.videoWidth) {
+      lienzo.width = v.videoWidth; lienzo.height = v.videoHeight; ctx.drawImage(v, 0, 0);
+      const img = ctx.getImageData(0, 0, lienzo.width, lienzo.height), r = jsQR(img.data, img.width, img.height);
+      if (r && r.data) {
+        try {
+          const u = new URL(r.data), n = u.searchParams.get('n'), t = u.searchParams.get('t');
+          if (u.origin === location.origin && n && t) { cerrarEscaner(); sellar(n, t); return; }
+        } catch (e) {}
+        msg($('scanMsg'), 'Ese código no es de Alicioso. Prueba con otro.');
+      }
+    }
+    requestAnimationFrame(leer);
+  };
+  requestAnimationFrame(leer);
+}
+function cerrarEscaner(){ escaneando = false; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; $('scan').classList.add('hide'); }
+$('btnEscanear').onclick = abrirEscaner;
+$('btnCerrarScan').onclick = cerrarEscaner;
 
 async function irVendedor(){
   limpiar();
