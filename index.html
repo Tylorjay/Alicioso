@@ -21,7 +21,7 @@ button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:13px 18p
 button.sec{background:transparent;color:var(--brand);border:2px solid var(--brand)}
 button.link{background:none;color:var(--mute);min-height:0;padding:6px;font-weight:600}
 button:disabled{opacity:.5}
-button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--brand);outline-offset:2px}
 .full{width:100%;display:block;margin-top:12px}
 .panel{background:var(--surf);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:16px}
 label{display:block;font-weight:700;margin:14px 0 6px}
@@ -31,6 +31,8 @@ input[type=color]{padding:4px;height:52px}
 .msg.err{color:var(--err)}.msg.ok{color:var(--ok)}
 .hide{display:none!important}
 .mute{color:var(--mute)}
+details.panel{padding:6px 18px 12px}
+details.panel summary{font-weight:700;color:var(--brand);cursor:pointer;min-height:48px;display:flex;align-items:center}
 .card{border-radius:22px;padding:20px;margin-top:16px;transition:background .3s}
 .card h2{font-size:28px}
 .card .sub{opacity:.85;font-weight:700}
@@ -89,9 +91,11 @@ input[type=color]{padding:4px;height:52px}
 
   <section id="vVendedor" class="hide">
     <div class="panel">
-      <h3>Tu código QR</h3>
-      <p class="mute">Es permanente. Toma captura, imprímelo y pégalo en tu local con la frase: «Escanea aquí y obtén tu tarjeta de fidelización».</p>
-      <div class="qrbox" id="qr"></div>
+      <button class="full sec" id="btnQR" style="margin-top:0">Mostrar mi código QR</button>
+      <div id="qrWrap" class="hide">
+        <p class="mute">Es permanente. Muéstralo a un cliente nuevo, o toma captura e imprímelo para pegarlo en tu local con la frase: «Escanea aquí y obtén tu tarjeta de fidelización».</p>
+        <div class="qrbox" id="qr"></div>
+      </div>
     </div>
     <div class="panel">
       <h3>Clientes <span class="mute" id="nClientes"></span></h3>
@@ -180,11 +184,12 @@ function pintarTarjeta(t, neg){
     <div class="prize">${completa ? '¡Completaste tu tarjeta! Muestra esta pantalla para recibir: ' : `Te ${falta === 1 ? 'falta 1 sello' : 'faltan ' + falta + ' sellos'} para: `}${esc(neg.premio)}</div>
     ${completa ? '<span class="badge">Premio listo</span>' : ''}
   </div>
-  <div class="panel">
+  <details class="panel">
+    <summary>Editar mis datos</summary>
     <label for="n_${t.id}">Mi nombre</label><input id="n_${t.id}" maxlength="30" value="${esc(t.nombre)}">
     <label for="e_${t.id}">Mi edad</label><input id="e_${t.id}" type="number" min="1" max="120" inputmode="numeric" value="${t.edad || ''}">
     <label for="c_${t.id}">Color de mi tarjeta</label><input id="c_${t.id}" type="color" value="${t.color}">
-  </div>`;
+  </details>`;
 }
 function irCliente(){
   limpiar();
@@ -226,12 +231,18 @@ $('btnCrear').onclick = async () => {
 };
 
 // ---------- Vendedor ----------
+$('btnQR').onclick = () => {
+  const abierto = !$('qrWrap').classList.contains('hide');
+  $('qrWrap').classList.toggle('hide', abierto);
+  $('btnQR').textContent = abierto ? 'Mostrar mi código QR' : 'Ocultar mi código QR';
+};
 async function irVendedor(){
   limpiar();
   const ref = db.collection('negocios').doc(user.uid);
   let s = await ref.get();
   if (!s.exists) { await ref.set(DEFECTO); s = await ref.get(); }
   const neg = s.data(); ver('vVendedor');
+  $('qrWrap').classList.add('hide'); $('btnQR').textContent = 'Mostrar mi código QR';
   const qr = qrcode(0, 'M'); qr.addData(location.origin + '/?n=' + user.uid); qr.make();
   $('qr').innerHTML = qr.createSvgTag({cellSize:6, margin:0, scalable:true});
   unsubs.push(db.collection('tarjetas').where('negocioId','==',user.uid).onSnapshot(snap => {
