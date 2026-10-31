@@ -17,7 +17,7 @@ h1,h2,h3{font-family:'Baloo 2',system-ui,sans-serif;line-height:1.15;margin:0}
 main{max-width:480px;margin:0 auto;padding:16px 16px 48px}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
 .logo{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:26px;color:var(--brand)}
-button,.btn{font:inherit;font-weight:700;border:0;border-radius:14px;padding:13px 18px;background:var(--brand);color:#fff;cursor:pointer;min-height:48px}
+button{font:inherit;font-weight:700;border:0;border-radius:14px;padding:13px 18px;background:var(--brand);color:#fff;cursor:pointer;min-height:48px}
 button.sec{background:transparent;color:var(--brand);border:2px solid var(--brand)}
 button.link{background:none;color:var(--mute);min-height:0;padding:6px;font-weight:600}
 button:disabled{opacity:.5}
@@ -42,17 +42,10 @@ input[type=color]{padding:4px;height:52px}
 .prize{font-weight:800;margin-top:6px}
 .badge{display:inline-block;background:#fff;color:#241437;border-radius:999px;padding:4px 12px;font-weight:800;margin-top:8px}
 .qrbox{background:#fff;border-radius:18px;padding:14px;display:grid;place-items:center;margin-top:12px}
-.qrbox svg,.qrbox img{width:min(260px,100%);height:auto}
-.bar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
-.bar i{display:block;height:100%;background:var(--brand);width:100%;transition:width 1s linear}
+.qrbox svg{width:min(260px,100%);height:auto}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-top:1px solid var(--line)}
 .row:first-child{border-top:0}
 .row button{min-height:40px;padding:8px 14px}
-.scan{position:fixed;inset:0;background:#000;z-index:50;display:flex;flex-direction:column}
-.scan video{flex:1;width:100%;object-fit:cover;min-height:0}
-.scan .frame{position:absolute;left:50%;top:42%;width:min(70vw,300px);aspect-ratio:1;transform:translate(-50%,-50%);border:4px solid #fff;border-radius:24px;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
-.scan .bottom{padding:16px;background:#160d24;color:#fff;text-align:center}
-.scan .bottom p{margin:0 0 10px;font-weight:600}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -62,7 +55,7 @@ input[type=color]{padding:4px;height:52px}
 
   <section id="vLogin" class="hide">
     <h1>Tu tarjeta de sellos, siempre en el bolsillo</h1>
-    <p class="mute">Entra con tu cuenta de Google para ver o crear tu tarjeta.</p>
+    <p class="mute">Entra con tu cuenta de Google para crear o ver tu tarjeta.</p>
     <button class="full" id="btnGoogle">Entrar con Google</button>
     <div class="msg err" id="loginMsg"></div>
   </section>
@@ -73,26 +66,37 @@ input[type=color]{padding:4px;height:52px}
     <button class="full sec" data-rol="vendedor">Tengo un negocio</button>
   </section>
 
+  <section id="vReg" class="hide">
+    <h1>Crea tu tarjeta</h1>
+    <p class="mute" id="regNeg"></p>
+    <div class="panel">
+      <label for="rNombre">Tu nombre o apodo</label><input id="rNombre" maxlength="30">
+      <label for="rEdad">Tu edad</label><input id="rEdad" type="number" min="1" max="120" inputmode="numeric">
+      <label for="rColor">Color de tu tarjeta</label><input id="rColor" type="color" value="#6d28d9">
+      <button class="full" id="btnCrear">Crear mi tarjeta</button>
+      <div class="msg" id="regMsg"></div>
+    </div>
+  </section>
+
   <section id="vCliente" class="hide">
-    <button class="full" id="btnEscanear">Escanear código QR</button>
-    <div id="aviso" class="msg"></div>
     <div id="tarjetas"></div>
     <div class="panel" id="vacioCliente">
       <h3>Aún no tienes tarjetas</h3>
-      <p class="mute">Pide el código QR en tu negocio favorito y escanéalo con la cámara del teléfono. Tu tarjeta se crea sola.</p>
+      <p class="mute">Escanea el código QR de tu negocio favorito con la cámara del teléfono y tu tarjeta se crea en segundos.</p>
     </div>
+    <div class="msg" id="aviso"></div>
   </section>
 
   <section id="vVendedor" class="hide">
     <div class="panel">
-      <h3>Código para dar un sello</h3>
-      <p class="mute">El cliente lo escanea con la cámara. Cambia cada 25 segundos y solo sirve una vez por minuto por cliente.</p>
+      <h3>Tu código QR</h3>
+      <p class="mute">Es permanente. Toma captura, imprímelo y pégalo en tu local con la frase: «Escanea aquí y obtén tu tarjeta de fidelización».</p>
       <div class="qrbox" id="qr"></div>
-      <div class="bar"><i id="barra"></i></div>
     </div>
     <div class="panel">
       <h3>Clientes <span class="mute" id="nClientes"></span></h3>
-      <div id="listaClientes"><p class="mute">Todavía no hay clientes. Muestra el código a tu primer cliente.</p></div>
+      <div id="listaClientes"><p class="mute">Todavía no hay clientes. Cuando alguien escanee tu código, aparecerá aquí.</p></div>
+      <div class="msg" id="vendMsg"></div>
     </div>
     <button class="full sec" id="btnConfig">Configurar mi negocio</button>
   </section>
@@ -112,47 +116,40 @@ input[type=color]{padding:4px;height:52px}
     </div>
   </section>
 </main>
-<div class="scan hide" id="scan" role="dialog" aria-label="Escanear código QR">
-  <video id="video" playsinline muted></video>
-  <div class="frame"></div>
-  <div class="bottom"><p id="scanMsg">Apunta al código QR del negocio</p><button class="sec full" id="btnCerrarScan" style="color:#fff;border-color:#fff">Cancelar</button></div>
-</div>
 
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-app-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/firebase@10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 <script>
-const firebaseConfig = {
+firebase.initializeApp({
   apiKey: "AIzaSyBYlml-HaJb09kRhmdGgqG3hcV-47w43JM",
   authDomain: "alicioso-f2746.firebaseapp.com",
   projectId: "alicioso-f2746",
   storageBucket: "alicioso-f2746.firebasestorage.app",
   messagingSenderId: "1018644529186",
   appId: "1:1018644529186:web:15ed9b30d20dbc88f78a7b"
-};
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth(), db = firebase.firestore(), TS = firebase.firestore.Timestamp;
+});
+const auth = firebase.auth(), db = firebase.firestore();
 const $ = id => document.getElementById(id);
-const VISTAS = ['vLogin','vRol','vCliente','vVendedor','vConfig'];
-const unsubs = []; let user = null, timerQR = null;
+const VISTAS = ['vLogin','vRol','vReg','vCliente','vVendedor','vConfig'];
+const unsubs = []; let user = null, NEG = new URLSearchParams(location.search).get('n');
 const DEFECTO = {nombre:'Alicioso', tipo:'Paletería', totalCasillas:4, premio:'Una paleta gratis', color:'#6d28d9'};
 
 function ver(id){ VISTAS.forEach(v => $(v).classList.toggle('hide', v !== id)); $('btnSalir').classList.toggle('hide', id === 'vLogin'); }
-function limpiar(){ unsubs.splice(0).forEach(f => f()); clearInterval(timerQR); if (typeof cerrarEscaner === 'function') cerrarEscaner(); }
+function limpiar(){ unsubs.splice(0).forEach(f => f()); }
 function msg(el, texto, tipo){ el.textContent = texto || ''; el.className = 'msg ' + (tipo || ''); }
 function esc(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function textoSobre(hex){ const n = parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&255, b=n&255; return (r*299+g*587+b*114)/1000 > 150 ? '#241437' : '#ffffff'; }
 function errorLegible(e){
-  if (e && e.code === 'permission-denied') return 'No se pudo sellar. El código venció o ya recibiste un sello hace menos de un minuto. Toca Escanear código QR para intentarlo de nuevo.';
+  if (e && e.code === 'permission-denied') return 'No tienes permiso para hacer eso. Revisa tus datos e inténtalo de nuevo.';
   if (e && e.code === 'unavailable') return 'Sin conexión. Revisa tu internet e inténtalo de nuevo.';
   return 'Algo salió mal. Inténtalo de nuevo.';
 }
 
 $('btnGoogle').onclick = async () => {
   try { await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); }
-  catch (e) { msg($('loginMsg'), e.code === 'auth/unauthorized-domain' ? 'Este sitio aún no está autorizado en Firebase (Authentication > Configuración > Dominios autorizados).' : 'No se pudo entrar. Inténtalo de nuevo.', 'err'); }
+  catch (e) { msg($('loginMsg'), e.code === 'auth/unauthorized-domain' ? 'Este sitio aún no está autorizado en Firebase.' : 'No se pudo entrar. Inténtalo de nuevo.', 'err'); }
 };
 $('btnSalir').onclick = () => auth.signOut();
 auth.onAuthStateChanged(async u => {
@@ -160,8 +157,7 @@ auth.onAuthStateChanged(async u => {
   if (!u) return ver('vLogin');
   try {
     const s = await db.collection('users').doc(u.uid).get();
-    const params = new URLSearchParams(location.search);
-    if (!s.exists && params.get('n')) { await db.collection('users').doc(u.uid).set({rol:'cliente'}); return irCliente(); }
+    if (!s.exists && NEG) { await db.collection('users').doc(u.uid).set({rol:'cliente'}); return irCliente(); }
     if (!s.exists) return ver('vRol');
     s.data().rol === 'vendedor' ? irVendedor() : irCliente();
   } catch (e) { ver('vLogin'); msg($('loginMsg'), errorLegible(e), 'err'); }
@@ -171,8 +167,9 @@ document.querySelectorAll('[data-rol]').forEach(b => b.onclick = async () => {
   b.dataset.rol === 'vendedor' ? irVendedor() : irCliente();
 });
 
+// ---------- Cliente ----------
 function pintarTarjeta(t, neg){
-  const total = neg.totalCasillas, fill = textoSobre(t.color);
+  const total = neg.totalCasillas, fill = textoSobre(t.color), falta = total - t.sellos;
   let pops = '';
   for (let i = 0; i < total; i++) pops += `<div class="pop ${i < t.sellos ? 'on' : ''}">${i < t.sellos ? '✓' : ''}</div>`;
   const completa = t.sellos >= total;
@@ -180,113 +177,75 @@ function pintarTarjeta(t, neg){
     <div class="sub">${esc(neg.nombre)} · ${esc(neg.tipo)}</div>
     <h2>${esc(t.nombre)}</h2>
     <div class="slots">${pops}</div>
-    <div class="prize">${completa ? '¡Completaste tu tarjeta! Muestra esta pantalla para recibir: ' : `${t.sellos} de ${total}. Premio: `}${esc(neg.premio)}</div>
+    <div class="prize">${completa ? '¡Completaste tu tarjeta! Muestra esta pantalla para recibir: ' : `Te ${falta === 1 ? 'falta 1 sello' : 'faltan ' + falta + ' sellos'} para: `}${esc(neg.premio)}</div>
     ${completa ? '<span class="badge">Premio listo</span>' : ''}
   </div>
   <div class="panel">
     <label for="n_${t.id}">Mi nombre</label><input id="n_${t.id}" maxlength="30" value="${esc(t.nombre)}">
+    <label for="e_${t.id}">Mi edad</label><input id="e_${t.id}" type="number" min="1" max="120" inputmode="numeric" value="${t.edad || ''}">
     <label for="c_${t.id}">Color de mi tarjeta</label><input id="c_${t.id}" type="color" value="${t.color}">
   </div>`;
 }
 function irCliente(){
-  ver('vCliente'); limpiar();
+  limpiar();
   const negocios = {};
-  const q = db.collection('tarjetas').where('clienteUid','==',user.uid);
-  unsubs.push(q.onSnapshot(async snap => {
+  unsubs.push(db.collection('tarjetas').where('clienteUid','==',user.uid).onSnapshot(async snap => {
     const items = snap.docs.map(d => ({id:d.id, ...d.data()}));
+    if (NEG && items.some(t => t.negocioId === NEG)) { NEG = null; history.replaceState(null, '', location.pathname); }
+    if (NEG) return pedirRegistro();
+    ver('vCliente');
     for (const t of items) if (!negocios[t.negocioId]) negocios[t.negocioId] = (await db.collection('negocios').doc(t.negocioId).get()).data();
     $('vacioCliente').classList.toggle('hide', items.length > 0);
     const caja = $('tarjetas');
     if (!caja.contains(document.activeElement) || !items.length) caja.innerHTML = items.map(t => pintarTarjeta(t, negocios[t.negocioId])).join('');
-    else items.forEach(t => { const c = caja.querySelector('#c_' + CSS.escape(t.id)); if (c) c.value = t.color; });
     items.forEach(t => {
-      const n = $('n_' + t.id), c = $('c_' + t.id); if (!n) return;
-      const guardar = async () => { const nombre = n.value.trim().slice(0,30); if (!nombre) return;
-        try { await db.collection('tarjetas').doc(t.id).update({nombre, color:c.value}); } catch (e) { msg($('aviso'), errorLegible(e), 'err'); } };
-      let espera; const dif = () => { clearTimeout(espera); espera = setTimeout(guardar, 500); };
-      n.oninput = dif; c.oninput = dif;
+      const n = $('n_' + t.id), e = $('e_' + t.id), c = $('c_' + t.id); if (!n) return;
+      const guardar = async () => {
+        const nombre = n.value.trim().slice(0,30), edad = Math.round(Number(e.value));
+        if (!nombre || !(edad >= 1 && edad <= 120)) return;
+        try { await db.collection('tarjetas').doc(t.id).update({nombre, edad, color:c.value}); } catch (x) { msg($('aviso'), errorLegible(x), 'err'); } };
+      let espera; const dif = () => { clearTimeout(espera); espera = setTimeout(guardar, 600); };
+      n.oninput = dif; e.oninput = dif; c.oninput = dif;
     });
   }, e => msg($('aviso'), errorLegible(e), 'err')));
-  procesarQR();
 }
-function procesarQR(){
-  const p = new URLSearchParams(location.search), n = p.get('n'), t = p.get('t');
-  if (!n || !t) return;
-  history.replaceState(null, '', location.pathname);
-  return sellar(n, t);
+async function pedirRegistro(){
+  const neg = await db.collection('negocios').doc(NEG).get();
+  if (!neg.exists) { NEG = null; history.replaceState(null, '', location.pathname); return ver('vCliente'); }
+  $('regNeg').textContent = 'Tarjeta de ' + neg.data().nombre + ' · ' + neg.data().premio;
+  $('rNombre').value = (user.displayName || '').split(' ')[0].slice(0,30); $('rColor').value = neg.data().color;
+  ver('vReg');
 }
-async function sellar(n, t){
-  msg($('aviso'), 'Sellando tu tarjeta…');
+$('btnCrear').onclick = async () => {
+  const nombre = $('rNombre').value.trim(), edad = Math.round(Number($('rEdad').value));
+  if (!nombre || !(edad >= 1 && edad <= 120)) return msg($('regMsg'), 'Escribe tu nombre y tu edad.', 'err');
   try {
-    const ref = db.collection('tarjetas').doc(n + '_' + user.uid);
-    let s = await ref.get();
-    if (!s.exists) {
-      const neg = await db.collection('negocios').doc(n).get();
-      if (!neg.exists) return msg($('aviso'), 'Este código no pertenece a un negocio válido.', 'err');
-      await ref.set({negocioId:n, clienteUid:user.uid, nombre:(user.displayName || 'Cliente').slice(0,30), color:neg.data().color, sellos:0, ultimoSello:new Date(946684800000), tokenUsado:''});
-      s = await ref.get();
-    }
-    const neg = (await db.collection('negocios').doc(n).get()).data();
-    if (s.data().sellos >= neg.totalCasillas) return msg($('aviso'), 'Tu tarjeta ya está completa. Pide tu premio.', 'ok');
-    await ref.update({sellos:s.data().sellos + 1, ultimoSello:firebase.firestore.FieldValue.serverTimestamp(), tokenUsado:t});
-    msg($('aviso'), '¡Sello agregado!', 'ok');
-  } catch (e) { msg($('aviso'), errorLegible(e), 'err'); }
-}
+    await db.collection('tarjetas').doc(NEG + '_' + user.uid).set({negocioId:NEG, clienteUid:user.uid, nombre, edad, color:$('rColor').value, sellos:0});
+    NEG = null; history.replaceState(null, '', location.pathname);
+  } catch (e) { msg($('regMsg'), errorLegible(e), 'err'); }
+};
 
-let stream = null, escaneando = false;
-async function abrirEscaner(){
-  const v = $('video');
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}}, audio:false});
-  } catch (e) { return msg($('aviso'), 'No se pudo abrir la cámara. Permite el acceso a la cámara en tu navegador e inténtalo de nuevo.', 'err'); }
-  v.srcObject = stream; await v.play();
-  $('scan').classList.remove('hide'); msg($('scanMsg'), 'Apunta al código QR del negocio'); escaneando = true;
-  const lienzo = document.createElement('canvas'), ctx = lienzo.getContext('2d', {willReadFrequently:true});
-  const leer = () => {
-    if (!escaneando) return;
-    if (v.readyState === v.HAVE_ENOUGH_DATA && v.videoWidth) {
-      lienzo.width = v.videoWidth; lienzo.height = v.videoHeight; ctx.drawImage(v, 0, 0);
-      const img = ctx.getImageData(0, 0, lienzo.width, lienzo.height), r = jsQR(img.data, img.width, img.height);
-      if (r && r.data) {
-        try {
-          const u = new URL(r.data), n = u.searchParams.get('n'), t = u.searchParams.get('t');
-          if (u.origin === location.origin && n && t) { cerrarEscaner(); sellar(n, t); return; }
-        } catch (e) {}
-        msg($('scanMsg'), 'Ese código no es de Alicioso. Prueba con otro.');
-      }
-    }
-    requestAnimationFrame(leer);
-  };
-  requestAnimationFrame(leer);
-}
-function cerrarEscaner(){ escaneando = false; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null; $('scan').classList.add('hide'); }
-$('btnEscanear').onclick = abrirEscaner;
-$('btnCerrarScan').onclick = cerrarEscaner;
-
+// ---------- Vendedor ----------
 async function irVendedor(){
   limpiar();
   const ref = db.collection('negocios').doc(user.uid);
   let s = await ref.get();
   if (!s.exists) { await ref.set(DEFECTO); s = await ref.get(); }
   const neg = s.data(); ver('vVendedor');
-  rotarCodigo(); timerQR = setInterval(rotarCodigo, 25000); barra();
+  const qr = qrcode(0, 'M'); qr.addData(location.origin + '/?n=' + user.uid); qr.make();
+  $('qr').innerHTML = qr.createSvgTag({cellSize:6, margin:0, scalable:true});
   unsubs.push(db.collection('tarjetas').where('negocioId','==',user.uid).onSnapshot(snap => {
     const total = neg.totalCasillas; $('nClientes').textContent = `(${snap.size})`;
     if (snap.empty) return;
     $('listaClientes').innerHTML = snap.docs.map(d => { const t = d.data(), listo = t.sellos >= total;
-      return `<div class="row"><div><b>${esc(t.nombre)}</b><br><span class="mute">${t.sellos} de ${total}${listo ? ' · premio listo' : ''}</span></div>${listo ? `<button data-premio="${d.id}">Entregar premio</button>` : ''}</div>`; }).join('');
+      return `<div class="row"><div><b>${esc(t.nombre)}</b>${t.edad ? ' · ' + t.edad + ' años' : ''}<br><span class="mute">${t.sellos} de ${total}${listo ? ' · premio listo' : ''}</span></div>${listo ? `<button data-premio="${d.id}">Entregar premio</button>` : `<button data-sello="${d.id}" data-n="${t.sellos}">Dar sello</button>`}</div>`; }).join('');
+    document.querySelectorAll('[data-sello]').forEach(b => b.onclick = async () => {
+      b.disabled = true;
+      try { await db.collection('tarjetas').doc(b.dataset.sello).update({sellos:Number(b.dataset.n) + 1}); msg($('vendMsg'), ''); }
+      catch (e) { msg($('vendMsg'), errorLegible(e), 'err'); b.disabled = false; } });
     document.querySelectorAll('[data-premio]').forEach(b => b.onclick = async () => {
       if (confirm('¿Ya entregaste el premio? La tarjeta volverá a cero.')) await db.collection('tarjetas').doc(b.dataset.premio).update({sellos:0}); });
-  }));
-}
-function barra(){ const b = $('barra'); b.style.transition = 'none'; b.style.width = '100%'; void b.offsetWidth; b.style.transition = 'width 25s linear'; b.style.width = '0%'; }
-async function rotarCodigo(){
-  const bytes = crypto.getRandomValues(new Uint8Array(12)), token = Array.from(bytes, x => x.toString(16).padStart(2,'0')).join('');
-  try {
-    await db.collection('negocios').doc(user.uid).collection('secreto').doc('actual').set({token, expira:TS.fromMillis(Date.now() + 50000)});
-    const url = location.origin + location.pathname + '?n=' + user.uid + '&t=' + token;
-    const qr = qrcode(0, 'M'); qr.addData(url); qr.make(); $('qr').innerHTML = qr.createSvgTag({cellSize:6, margin:0, scalable:true}); barra();
-  } catch (e) { $('qr').textContent = 'No se pudo generar el código. Revisa tu conexión.'; }
+  }, e => msg($('vendMsg'), errorLegible(e), 'err')));
 }
 $('btnConfig').onclick = async () => {
   const d = (await db.collection('negocios').doc(user.uid).get()).data();
